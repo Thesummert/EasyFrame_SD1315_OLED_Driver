@@ -46,7 +46,7 @@ set(Config_Src
 )
 
 set(Device_Src 
-    ./User/Device/Src/SD1315.c
+    ./User/Device/Src/SSD1315.c
 )
 
 # Link directories setup

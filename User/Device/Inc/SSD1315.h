@@ -14,11 +14,21 @@ typedef enum {
   SD1315_ADDR_2 = 0x7A,
 } EF_Device_SD1315_I2CID_e;
 
+typedef enum
+{
+    SSD1315_PUMP_0V,
+    SSD1315_PUMP_7V5,
+    SSD1315_PUMP_8V5,
+    SSD1315_PUMP_9V0,
+};
+
 typedef struct EF_Device_SD1315_I2C_t {
   uint8_t i2c_addr;
   uint16_t height;
   uint16_t witdh;
   EasyFrame_I2C_Typedef_t *i2c;
+
+  _Bool is_inited;
 } EF_Device_SD1315_I2C_t;
 
 #ifdef __cplusplus

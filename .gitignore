@@ -1,3 +1,5 @@
 # 排除cmake生成文件
 /**/build
 /**/__cmake_systeminformation
+/**/.DS_Store
+
