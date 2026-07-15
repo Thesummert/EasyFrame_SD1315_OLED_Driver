@@ -1,0 +1,42 @@
+/**
+ * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
+ * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
+ * @cliArgs --device "MSPM0G350X" --part "Default" --package "LQFP-48(PT)" --product "mspm0_sdk@2.10.00.04"
+ * @v2CliArgs --device "MSPM0G3507" --package "LQFP-48(PT)" --product "mspm0_sdk@2.10.00.04"
+ * @versions {"tool":"1.27.0+4565"}
+ */
+scripting.excludeFromBuild("device_linker.cmd");
+scripting.excludeFromBuild("device.opt");
+scripting.excludeFromBuild("device.cmd.genlibs");
+scripting.excludeFromBuild("device.lds.genlibs");
+scripting.excludeFromBuild("Event.dot");
+
+/**
+ * Import the modules used in this configuration.
+ */
+const Board = scripting.addModule("/ti/driverlib/Board");
+const GPIO  = scripting.addModule("/ti/driverlib/GPIO", {}, false);
+const GPIO1 = GPIO.addInstance();
+
+/**
+ * Write custom configuration values to the imported modules.
+ */
+
+GPIO1.$name                         = "LED_GROP";
+GPIO1.port                          = "PORTB";
+GPIO1.associatedPins[0].$name       = "LED";
+GPIO1.associatedPins[0].ioStructure = "SD";
+GPIO1.associatedPins[0].assignedPin = "2";
+
+const SYSCTL = scripting.addModule("/ti/driverlib/SYSCTL", {}, false);
+
+/**
+ * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
+ * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
+ * re-solve from scratch.
+ */
+Board.peripheral.$suggestSolution            = "DEBUGSS";
+Board.peripheral.swclkPin.$suggestSolution   = "PA20";
+Board.peripheral.swdioPin.$suggestSolution   = "PA19";
+GPIO1.associatedPins[0].pin.$suggestSolution = "PB2";
+SYSCTL.peripheral.$suggestSolution           = "SYSCTL";
