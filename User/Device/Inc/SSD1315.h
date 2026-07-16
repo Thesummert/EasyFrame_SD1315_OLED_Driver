@@ -28,6 +28,12 @@ typedef struct EF_Device_SD1315_I2C_t {
   EF_Device_SD1315_PUMP_e pump_setting;
   EasyFrame_I2C_Typedef_t *i2c;
   uint8_t *buffer; // 显存缓冲区
+  struct {
+    uint8_t column_index;
+    uint8_t pages_flag;
+  } need_fresh[128];       // 刷新缓冲区
+  uint8_t fresh_num;       // 需要刷新缓冲区的数量
+  uint8_t fresh_area[128]; // 标记缓冲区位置
 
   _Bool (*WriteCMD)(struct EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                     _Bool CO, uint8_t buffer_len);
@@ -41,6 +47,11 @@ typedef struct EF_Device_SD1315_I2C_t {
                      _Bool set);
 
   _Bool (*Clear)(struct EF_Device_SD1315_I2C_t *self);
+
+  _Bool (*WriteBuffer)(struct EF_Device_SD1315_I2C_t *self);
+
+  _Bool (*WritePoint)(struct EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                      _Bool set);
 
   _Bool is_inited;
 } EF_Device_SD1315_I2C_t;

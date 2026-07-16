@@ -18,9 +18,13 @@ int main(void) {
       ans = ssd->InitDevice(ssd);
 
   while (1) {
-      ssd->DrawPoint(ssd, 10, 10, 1);
+      ssd->WritePoint(ssd, 10, 10, 1);
+      ssd->WritePoint(ssd, 10, 40, 1);
+      ssd->WriteBuffer(ssd);
       EasyFrameSysTime_Delay(1);
-      ssd->DrawPoint(ssd, 10, 10, 0);
+      ssd->WritePoint(ssd, 10, 10, 0);
+      ssd->WritePoint(ssd, 10, 40, 0);
+      ssd->WriteBuffer(ssd);
       EasyFrameSysTime_Delay(1);
   }
 }

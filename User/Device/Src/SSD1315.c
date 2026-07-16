@@ -4,6 +4,7 @@
 #include "mcu_config.h"
 #include "ti/driverlib/dl_aesadv.h"
 #include <assert.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -54,7 +55,16 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self);
 
 static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
                            _Bool set);
+
+static _Bool I2C_WritePoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                            _Bool set);
+
 static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self);
+
+static _Bool WriteBufferSet(EF_Device_SD1315_I2C_t *self, uint8_t column,
+                            uint8_t page);
+
+static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self);
 
 _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
                                 uint8_t height, uint8_t witdh,
@@ -79,6 +89,8 @@ _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
   self->InitDevice = I2C_InitDevice;
   self->DrawPoint = I2C_DrawPoint;
   self->Clear = I2C_Clear;
+  self->WriteBuffer = I2C_WriteBuffer;
+  self->WritePoint = I2C_WritePoint;
 
   self->is_inited = true;
 
@@ -143,9 +155,9 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
   if (self->WriteCMD(self, multiradio_set, 0, 8) == false) {
     return false;
   }
-  if (self->Clear(self) == false) {
-    // return false;
-  }
+  // if (self->Clear(self) == false) {
+  //   // return false;
+  // }
   EasyFrameSysTime_Delay_us(1000);
   if (self->WriteCMD(self, start, 0, 8) == false) {
     return false;
@@ -191,7 +203,7 @@ static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
 
 static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self) {
   if (self == NULL || self->is_inited == false) {
-    RTT_Print(0, "Null pointer error or not inited in ssd1315 init \r\n");
+    RTT_Print(0, "Null pointer error or not inited in ssd1315 clear \r\n");
     return false;
   }
   _Bool flag = true;
@@ -210,5 +222,87 @@ static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self) {
       flag = self->WriteData(self, send_buffer[3], 8);
     }
   }
+  return flag;
+}
+
+static _Bool I2C_WritePoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                            _Bool set) {
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0, "Null pointer error or not inited in ssd1315 write point\r\n");
+    return false;
+  }
+
+  if (x > SSD1315_COL_MAX || y > (SSD1315_PAGE_MAX + 1) * 8) {
+    RTT_Print(0, "x or y is invalid in ssd1315 draw point \r\n");
+    return false;
+  }
+
+  // 将内存缓冲区中对应的部分写入数据
+  uint8_t page = y / 8;
+  uint8_t bit = y % 8;
+  uint16_t index = page * (SSD1315_COL_MAX + 1) + x;
+  uint8_t mask = 1U << bit;
+
+  if (set) {
+    self->buffer[index] |= mask;
+  } else {
+    self->buffer[index] &= (uint8_t)~mask;
+  }
+  WriteBufferSet(self, x, page);
+
+  return true;
+}
+
+static _Bool WriteBufferSet(EF_Device_SD1315_I2C_t *self, uint8_t column,
+                            uint8_t page) {
+  /*在这里标记需要刷新的内存区域*/
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0, "Null pointer error or not inited in ssd1315 fresh set \r\n");
+    return false;
+  }
+  /*检查是否需要刷新缓冲区*/
+  if (self->need_fresh[column].pages_flag > 0) {
+    if ((self->need_fresh[column].pages_flag & (1U << page)) == 0) {
+      self->need_fresh[column].pages_flag |= (1 << page);
+    }
+  } else {
+    self->need_fresh[column].pages_flag |= (1 << page);
+    self->fresh_area[self->fresh_num] = column;
+    self->fresh_num += 1; // 添加需要刷新的数量
+  }
+
+  return true;
+}
+
+static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self) {
+  /*将内存缓冲区中的数据写入到屏幕中*/
+
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0,
+              "Null pointer error or not inited in ssd1315 write buffer \r\n");
+    return false;
+  }
+  _Bool flag = true;
+  for (uint8_t i = 0; i < self->fresh_num; i++) {
+    uint8_t send_buffer[][8] = {
+        {0, SSD1315_CMD_SET_LOWER_COLUMN(self->fresh_area[i])},
+        {0, SSD1315_CMD_SET_HIGHER_COLUMN(self->fresh_area[i] >> 4)}};
+    for (uint8_t j = 0; j < 8; j++) {
+      // 设定列地址
+      self->WriteCMD(self, send_buffer[0], false, 8);
+      self->WriteCMD(self, send_buffer[1], false, 8);
+      if (self->need_fresh[self->fresh_area[i]].pages_flag & (1U << j)) {
+        uint8_t page = j;
+        uint16_t index = page * (SSD1315_COL_MAX + 1) + self->fresh_area[i];
+        uint8_t buffer[][8] = {{0, SSD1315_CMD_SET_PAGE_START_ADDR(page)},
+                               {0, self->buffer[index]}};
+        self->WriteCMD(self, buffer[0], false, 8);
+        flag = self->WriteData(self, buffer[1], 8);
+      }
+    }
+  }
+  memset(&self->fresh_area, 0, 128);
+  memset(&self->need_fresh, 0, sizeof(self->need_fresh));
+  self->fresh_num = 0;
   return flag;
 }

@@ -2,4 +2,6 @@
 /**/build
 /**/__cmake_systeminformation
 /**/.DS_Store
+/**/**.jdebug
+/**/**.user
 
