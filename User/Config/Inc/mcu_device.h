@@ -5,9 +5,11 @@
 extern "C" {
 #endif
 
+#include "SSD1315.h"
 
 _Bool EasyFrameDevice_Init();
 
+EF_Device_SD1315_I2C_t *GetSSD1315();
 
 #ifdef __cplusplus
 }
