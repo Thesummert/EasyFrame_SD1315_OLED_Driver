@@ -2,6 +2,7 @@
 #include "SSD1315_regs.h"
 #include "bsp_mspm0g_tim_base.h"
 #include "mcu_config.h"
+#include "ti/driverlib/dl_adc12.h"
 #include "ti/driverlib/dl_aesadv.h"
 #include <assert.h>
 #include <inttypes.h>
@@ -64,8 +65,28 @@ static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self);
 static _Bool WriteBufferSet(EF_Device_SD1315_I2C_t *self, uint8_t column,
                             uint8_t page);
 
+static _Bool WriteLine(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                       uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                       _Bool set);
+static _Bool WriteRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                            uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                            _Bool set);
+static _Bool FillRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                            uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                            _Bool set);
+
 static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self);
 
+/**
+ * @brief 初始化 SSD1315 I2C 设备对象。
+ * @param self 设备对象指针。
+ * @param addr SSD1315 I2C 从地址，必须是支持的有效地址。
+ * @param height 显示器高度，单位像素。
+ * @param witdh 显示器宽度，单位像素。
+ * @param i2c 底层 I2C 句柄。
+ * @param buffer 显示缓冲区首地址，大小需满足屏幕分辨率需求。
+ * @return 初始化成功返回 true，失败返回 false。
+ */
 _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
                                 uint8_t height, uint8_t witdh,
                                 EasyFrame_I2C_Typedef_t *i2c, uint8_t *buffer) {
@@ -91,12 +112,23 @@ _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
   self->Clear = I2C_Clear;
   self->WriteBuffer = I2C_WriteBuffer;
   self->WritePoint = I2C_WritePoint;
+  self->WriteLine = WriteLine;
+  self->WriteRectangle = WriteRectangle;
+  self->FillRectangle = FillRectangle;
 
   self->is_inited = true;
 
   return true;
 }
 
+/**
+ * @brief 向 SSD1315 发送命令。
+ * @param self 设备对象指针。
+ * @param buffer 命令数据缓冲区，buffer[0] 表示后续有效字节数，buffer[1] 起为命令内容。
+ * @param CO 连续控制位，1 表示后续还有命令，0 表示最后一条命令。
+ * @param buffer_len buffer[1] 起有效数据长度。
+ * @return 发送成功返回 true，失败返回 false。
+ */
 static _Bool I2C_WriteCMD(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                           _Bool CO, uint8_t buffer_len) {
   if (self == NULL) {
@@ -113,6 +145,13 @@ static _Bool I2C_WriteCMD(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                              buffer[0] + 2, 0xFFFFF);
 }
 
+/**
+ * @brief 向 SSD1315 发送显示数据。
+ * @param self 设备对象指针。
+ * @param buffer 数据缓冲区，buffer[0] 表示后续有效字节数，buffer[1] 起为数据内容。
+ * @param buffer_len buffer[1] 起有效数据长度。
+ * @return 发送成功返回 true，失败返回 false。
+ */
 static _Bool I2C_WriteData(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                            uint8_t buffer_len) {
   if (self == NULL) {
@@ -129,6 +168,11 @@ static _Bool I2C_WriteData(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                              buffer[0] + 2, 0xFFFFF);
 }
 
+/**
+ * @brief 执行 SSD1315 默认初始化流程。
+ * @param self 设备对象指针。
+ * @return 初始化成功返回 true，失败返回 false。
+ */
 static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
   if (self == NULL || self->is_inited == false) {
     RTT_Print(0, "Null pointer error or not inited in ssd1315 init \r\n");
@@ -166,6 +210,14 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
   return true;
 }
 
+/**
+ * @brief 在指定坐标点上直接绘制单个像素并立即写入屏幕。
+ * @param self 设备对象指针。
+ * @param x 像素横坐标。
+ * @param y 像素纵坐标。
+ * @param set true 表示点亮像素，false 表示熄灭像素。
+ * @return 操作成功返回 true，失败返回 false。
+ */
 static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
                            _Bool set) {
   if (self == NULL || self->is_inited == false) {
@@ -201,6 +253,11 @@ static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
   return send_flag;
 }
 
+/**
+ * @brief 清空整个显示屏。
+ * @param self 设备对象指针。
+ * @return 清屏成功返回 true，失败返回 false。
+ */
 static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self) {
   if (self == NULL || self->is_inited == false) {
     RTT_Print(0, "Null pointer error or not inited in ssd1315 clear \r\n");
@@ -225,6 +282,14 @@ static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self) {
   return flag;
 }
 
+/**
+ * @brief 在缓冲区中修改指定像素，并标记对应区域待刷新。
+ * @param self 设备对象指针。
+ * @param x 像素横坐标。
+ * @param y 像素纵坐标。
+ * @param set true 表示点亮像素，false 表示熄灭像素。
+ * @return 操作成功返回 true，失败返回 false。
+ */
 static _Bool I2C_WritePoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
                             _Bool set) {
   if (self == NULL || self->is_inited == false) {
@@ -253,6 +318,13 @@ static _Bool I2C_WritePoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
   return true;
 }
 
+/**
+ * @brief 标记指定列和页需要刷新到屏幕。
+ * @param self 设备对象指针。
+ * @param column 需要刷新的列地址。
+ * @param page 需要刷新的页地址。
+ * @return 标记成功返回 true，失败返回 false。
+ */
 static _Bool WriteBufferSet(EF_Device_SD1315_I2C_t *self, uint8_t column,
                             uint8_t page) {
   /*在这里标记需要刷新的内存区域*/
@@ -274,6 +346,11 @@ static _Bool WriteBufferSet(EF_Device_SD1315_I2C_t *self, uint8_t column,
   return true;
 }
 
+/**
+ * @brief 将缓冲区中已标记的数据刷新到 SSD1315 屏幕。
+ * @param self 设备对象指针。
+ * @return 刷新成功返回 true，失败返回 false。
+ */
 static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self) {
   /*将内存缓冲区中的数据写入到屏幕中*/
 
@@ -304,5 +381,155 @@ static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self) {
   memset(&self->fresh_area, 0, 128);
   memset(&self->need_fresh, 0, sizeof(self->need_fresh));
   self->fresh_num = 0;
+  return flag;
+}
+
+/**
+ * @brief 画一条直线，并更新到显示缓冲区。
+ * @param self 设备对象指针。
+ * @param x_start 起点横坐标。
+ * @param y_start 起点纵坐标。
+ * @param x_stop 终点横坐标。
+ * @param y_stop 终点纵坐标。
+ * @param set true 表示绘制，false 表示擦除。
+ * @return 绘制成功返回 true，失败返回 false。
+ */
+static _Bool WriteLine(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                       uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                       _Bool set) {
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0, "Null pointer error or not inited in ssd1315 write line \r\n");
+    return false;
+  }
+
+  if (x_start >= self->witdh || x_stop >= self->witdh ||
+      y_start >= self->height || y_stop >= self->height) {
+    RTT_Print(0, "x or y is invalid in ssd1315 write line \r\n");
+    return false;
+  }
+
+  int16_t x0 = x_start;
+  int16_t y0 = y_start;
+  int16_t x1 = x_stop;
+  int16_t y1 = y_stop;
+
+  int16_t dx = abs(x1 - x0);
+  int16_t sx = x0 < x1 ? 1 : -1;
+  int16_t dy = -abs(y1 - y0);
+  int16_t sy = y0 < y1 ? 1 : -1;
+  int16_t err = dx + dy;
+
+  while (true) {
+    uint8_t page = (uint8_t)y0 / 8;
+    uint8_t bit = (uint8_t)y0 % 8;
+    uint16_t index = page * (SSD1315_COL_MAX + 1) + (uint8_t)x0;
+    uint8_t mask = 1U << bit;
+
+    if (set) {
+      self->buffer[index] |= mask;
+    } else {
+      self->buffer[index] &= (uint8_t)~mask;
+    }
+
+    if (WriteBufferSet(self, (uint8_t)x0, page) == false) {
+      return false;
+    }
+
+    if (x0 == x1 && y0 == y1) {
+      break;
+    }
+
+    int16_t e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x0 += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y0 += sy;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * @brief 画一个空心矩形，并更新到显示缓冲区。
+ * @param self 设备对象指针。
+ * @param x_start 左上角横坐标。
+ * @param y_start 左上角纵坐标。
+ * @param x_stop 右下角横坐标。
+ * @param y_stop 右下角纵坐标。
+ * @param set true 表示绘制，false 表示擦除。
+ * @return 绘制成功返回 true，失败返回 false。
+ */
+static _Bool WriteRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                            uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                            _Bool set) {
+
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(
+        0, "Null pointer error or not inited in ssd1315 write rectangle \r\n");
+    return false;
+  }
+
+  if (x_start >= self->witdh || x_stop >= self->witdh ||
+      y_start >= self->height || y_stop >= self->height) {
+    RTT_Print(0, "x or y is invalid in ssd1315 write rectangle \r\n");
+    return false;
+  }
+  if (x_start > x_stop || y_start > y_stop) {
+    RTT_Print(0, "rectangle start point is greater than stop point \r\n");
+    return false;
+  }
+  _Bool flag = true;
+  /* top */
+  flag &= self->WriteLine(self, x_start, y_start, x_stop, y_start, set);
+
+  /* bottom */
+  flag &= self->WriteLine(self, x_start, y_stop, x_stop, y_stop, set);
+
+  /* left */
+  flag &= self->WriteLine(self, x_start, y_start, x_start, y_stop, set);
+
+  /* right */
+  flag &= self->WriteLine(self, x_stop, y_start, x_stop, y_stop, set);
+
+  return flag;
+}
+
+/**
+ * @brief 画一个实心矩形，并更新到显示缓冲区。
+ * @param self 设备对象指针。
+ * @param x_start 左上角横坐标。
+ * @param y_start 左上角纵坐标。
+ * @param x_stop 右下角横坐标。
+ * @param y_stop 右下角纵坐标。
+ * @param set true 表示绘制，false 表示擦除。
+ * @return 绘制成功返回 true，失败返回 false。
+ */
+static _Bool FillRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                             uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                             _Bool set)
+{
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(
+        0, "Null pointer error or not inited in ssd1315 write rectangle \r\n");
+    return false;
+  }
+
+  if (x_start >= self->witdh || x_stop >= self->witdh ||
+      y_start >= self->height || y_stop >= self->height) {
+    RTT_Print(0, "x or y is invalid in ssd1315 write rectangle \r\n");
+    return false;
+  }
+  if (x_start > x_stop || y_start > y_stop) {
+    RTT_Print(0, "rectangle start point is greater than stop point \r\n");
+    return false;
+  }
+  _Bool flag = true;
+  for (uint8_t i = x_start; i < x_stop; i++){
+      flag = self->WriteLine(self, i, y_start, i, y_stop, set);
+  }
   return flag;
 }

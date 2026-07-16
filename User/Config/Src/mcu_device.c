@@ -19,10 +19,10 @@ _Bool EasyFrameDevice_Init() {
   EasyFrame_GPIO_Init(&sda, GPIOA, GPIO_I2C_0_SDA_PIN);
   EasyFrame_GPIO_InitIOMux(&sda, GPIO_I2C_0_IOMUX_SDA);
   EasyFrame_GPIO_InitIOMux(&scl, GPIO_I2C_0_IOMUX_SCL);
-  EasyFrame_I2C_Init(&i2c, I2C_0_INST, 1000);
+  EasyFrame_I2C_Init(&i2c, I2C_0_INST, 400000);
   EasyFrame_I2C_InitGPIO(&i2c, sda, scl);
   EF_Device_SD1315_I2C_Init(&ssd1315, SD1315_ADDR_1, 64, 128, &i2c, sd1315_buffer);
-  // i2c.mspm0g.i2c_delay = 100;
+  // i2c.mspm0g.i2c_delay = 10;
   
 
   return true;

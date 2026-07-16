@@ -53,6 +53,16 @@ typedef struct EF_Device_SD1315_I2C_t {
   _Bool (*WritePoint)(struct EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
                       _Bool set);
 
+  _Bool (*WriteLine)(struct EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                     uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                     _Bool set);
+
+  _Bool (*WriteRectangle)(struct EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                          uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                          _Bool set);
+  _Bool (*FillRectangle)(struct EF_Device_SD1315_I2C_t *self, uint8_t x_start,
+                          uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                          _Bool set);
   _Bool is_inited;
 } EF_Device_SD1315_I2C_t;
 
