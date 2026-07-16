@@ -1,4 +1,5 @@
 #include "SSD1315.h"
+#include "bsp_mspm0g_tim_base.h"
 #include "mcu_config.h"
 #include "ti_msp_dl_config.h"
 //
@@ -14,13 +15,12 @@ int main(void) {
   SYSCFG_DL_init();
   EasyFrameDevice_Init();
   ssd = GetSSD1315();
-  
+      ans = ssd->InitDevice(ssd);
+
   while (1) {
-          ans = ssd->InitDevice(ssd);
-      if (flag == true) {
-          ans = false;
-          ans = ssd->InitDevice(ssd);
-          flag = false;
-      }
+      ssd->DrawPoint(ssd, 10, 10, 1);
+      EasyFrameSysTime_Delay(1);
+      ssd->DrawPoint(ssd, 10, 10, 0);
+      EasyFrameSysTime_Delay(1);
   }
 }

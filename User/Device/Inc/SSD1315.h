@@ -27,6 +27,7 @@ typedef struct EF_Device_SD1315_I2C_t {
   uint8_t witdh;
   EF_Device_SD1315_PUMP_e pump_setting;
   EasyFrame_I2C_Typedef_t *i2c;
+  uint8_t *buffer; // 显存缓冲区
 
   _Bool (*WriteCMD)(struct EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                     _Bool CO, uint8_t buffer_len);
@@ -36,12 +37,17 @@ typedef struct EF_Device_SD1315_I2C_t {
 
   _Bool (*InitDevice)(struct EF_Device_SD1315_I2C_t *self);
 
+  _Bool (*DrawPoint)(struct EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                     _Bool set);
+
+  _Bool (*Clear)(struct EF_Device_SD1315_I2C_t *self);
+
   _Bool is_inited;
 } EF_Device_SD1315_I2C_t;
 
 _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
                                 uint8_t height, uint8_t witdh,
-                                EasyFrame_I2C_Typedef_t *i2c);
+                                EasyFrame_I2C_Typedef_t *i2c, uint8_t *buffer);
 
 #ifdef __cplusplus
 }

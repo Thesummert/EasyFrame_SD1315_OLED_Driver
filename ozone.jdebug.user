@@ -1,22 +1,20 @@
 
 
-Breakpoint=/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/BSP/Src/bsp_mspm0g_i2c.c:123, State=BP_STATE_ON
-Breakpoint=/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/BSP/Src/bsp_mspm0g_i2c.c:124, State=BP_STATE_ON
-Breakpoint=/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/BSP/Src/bsp_mspm0g_i2c.c:126, State=BP_STATE_ON
-Breakpoint=/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/Device/Src/SSD1315.c:148, State=BP_STATE_ON
-OpenDocument="dl_common.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/source/ti/driverlib/dl_common.c", Line=20
-OpenDocument="bsp_mspm0g_i2c.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/BSP/Src/bsp_mspm0g_i2c.c", Line=118
+OpenDocument="bsp_mspm0g_tim_base.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/BSP/Src/bsp_mspm0g_tim_base.c", Line=88
+OpenDocument="mcu_device.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/Config/Src/mcu_device.c", Line=0
+OpenDocument="dl_common.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/source/ti/driverlib/dl_common.c", Line=14
+OpenDocument="bsp_mspm0g_i2c.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/BSP/Src/bsp_mspm0g_i2c.c", Line=138
 OpenDocument="startup_mspm0g351x_gcc.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/Core/Src/startup_mspm0g351x_gcc.c", Line=155
-OpenDocument="SSD1315.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/Device/Src/SSD1315.c", Line=82
+OpenDocument="SSD1315.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/User/Device/Src/SSD1315.c", Line=170
 OpenDocument="main.c", FilePath="/mnt/win0/Users/xys/Documents/Code/MSPM0G/MSPM/SSD1315OLED/Core/Src/main.c", Line=0
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=300, h=554, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=414, h=608, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Break & Tracepoints", DockArea=LEFT, x=0, y=0, w=300, h=465, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VectorCatchIndexMask=0
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=300, h=550, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=414, h=596, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Break & Tracepoints", DockArea=LEFT, x=0, y=0, w=300, h=469, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VectorCatchIndexMask=0
 OpenWindow="Memory 1", DockArea=BOTTOM, x=2, y=0, w=415, h=159, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x20000018
-OpenWindow="Watched Data 1", DockArea=FLOATING, x=2792, y=307, w=965, h=556, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=FLOATING, x=2856, y=348, w=965, h=556, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 OpenWindow="Terminal", DockArea=BOTTOM, x=1, y=0, w=1085, h=159, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=414, h=411, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=414, h=423, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=898, h=159, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 SmartViewPlugin="", Page="", Toolbar="Hidden", Window="SmartView 1"
 TableHeader="Vector Catches", SortCol="", SortOrder="ASCENDING", VisibleCols=["";"Vector Catch";"Description"], ColWidths=[50;300;500]
@@ -27,6 +25,6 @@ TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING",
 TableHeader="Power Sampling", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[276;182;100;383]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
-TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;26]
-WatchedExpression="flag", RefreshRate=1, Window=Watched Data 1
-WatchedExpression="ssd", RefreshRate=5, Window=Watched Data 1
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;374]
+WatchedExpression="flag", RefreshRate=1, DisplayFormat=DISPLAY_FORMAT_HEX, Window=Watched Data 1
+WatchedExpression="ssd", RefreshRate=5, DisplayFormat=DISPLAY_FORMAT_HEX, Window=Watched Data 1

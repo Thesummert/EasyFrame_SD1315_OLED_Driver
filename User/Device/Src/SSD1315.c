@@ -52,9 +52,13 @@ static _Bool I2C_WriteData(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
 
 static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self);
 
+static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                           _Bool set);
+static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self);
+
 _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
                                 uint8_t height, uint8_t witdh,
-                                EasyFrame_I2C_Typedef_t *i2c) {
+                                EasyFrame_I2C_Typedef_t *i2c, uint8_t *buffer) {
   if (self == NULL || i2c == NULL) {
     RTT_Print(0, "Null pointer error in ssd1315 init \r\n");
     return false;
@@ -68,10 +72,13 @@ _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
   self->height = height;
   self->witdh = witdh;
   self->i2c_addr = addr;
+  self->buffer = buffer;
 
   self->WriteCMD = I2C_WriteCMD;
   self->WriteData = I2C_WriteData;
   self->InitDevice = I2C_InitDevice;
+  self->DrawPoint = I2C_DrawPoint;
+  self->Clear = I2C_Clear;
 
   self->is_inited = true;
 
@@ -90,8 +97,8 @@ static _Bool I2C_WriteCMD(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
   uint8_t send_buffer[buffer_len + 1];
   send_buffer[0] = CO << 7;
   memcpy(send_buffer + 1, buffer + 1, buffer_len);
-  return self->i2c->transmit(self->i2c, self->i2c_addr, send_buffer, buffer[0] + 2,
-                             0xFFFFF);
+  return self->i2c->transmit(self->i2c, self->i2c_addr, send_buffer,
+                             buffer[0] + 2, 0xFFFFF);
 }
 
 static _Bool I2C_WriteData(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
@@ -106,8 +113,8 @@ static _Bool I2C_WriteData(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
   uint8_t send_buffer[buffer_len + 1];
   send_buffer[0] = 0x40; // 设定为发送数据
   memcpy(send_buffer + 1, buffer + 1, buffer_len);
-  return self->i2c->transmit(self->i2c, self->i2c_addr, send_buffer, buffer[0] + 2,
-                             0xFFFFF);
+  return self->i2c->transmit(self->i2c, self->i2c_addr, send_buffer,
+                             buffer[0] + 2, 0xFFFFF);
 }
 
 static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
@@ -125,7 +132,7 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
   }
 
   uint8_t column_set[8] = {2, SSD1315_CMD_SET_COLUMN_ADDR, SSD1315_COL_MIN,
-                           self->witdh}; // 设定列范围
+                           self->witdh - 1}; // 设定列范围
   uint8_t multiradio_set[8] = {1, SSD1315_CMD_SET_MULTIPLEX_RATIO,
                                self->height - 1}; // 设定行数多路复用
   uint8_t start[8] = {0, SSD1315_CMD_DISPLAY_ON}; // 恢复显示
@@ -136,9 +143,8 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
   if (self->WriteCMD(self, multiradio_set, 0, 8) == false) {
     return false;
   }
-  EasyFrameSysTime_Delay_us(1000);
-  if (self->WriteCMD(self, multiradio_set, 0, 8) == false) {
-    return false;
+  if (self->Clear(self) == false) {
+    // return false;
   }
   EasyFrameSysTime_Delay_us(1000);
   if (self->WriteCMD(self, start, 0, 8) == false) {
@@ -146,4 +152,63 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
   }
 
   return true;
+}
+
+static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                           _Bool set) {
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0, "Null pointer error or not inited in ssd1315 init \r\n");
+    return false;
+  }
+
+  if (x > SSD1315_COL_MAX || y > (SSD1315_PAGE_MAX + 1) * 8) {
+    RTT_Print(0, "x or y is invalid in ssd1315 draw point \r\n");
+    return false;
+  }
+
+  uint8_t page = y / 8;
+  uint8_t bit = y % 8;
+  uint16_t index = page * (SSD1315_COL_MAX + 1) + x;
+  uint8_t mask = 1U << bit;
+  _Bool send_flag = true;
+
+  if (set) {
+    self->buffer[index] |= mask;
+  } else {
+    self->buffer[index] &= (uint8_t)~mask;
+  }
+  uint8_t send_buffer[][8] = {{0, SSD1315_CMD_SET_PAGE_START_ADDR(page)},
+                              {0, SSD1315_CMD_SET_LOWER_COLUMN(x)},
+                              {0, SSD1315_CMD_SET_HIGHER_COLUMN(x >> 4)},
+                              {0, self->buffer[index]}};
+
+  for (uint16_t i = 0; i < 3; i++) {
+    send_flag = self->WriteCMD(self, send_buffer[i], false, 8);
+  }
+  send_flag = self->WriteData(self, send_buffer[3], 8);
+  return send_flag;
+}
+
+static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self) {
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0, "Null pointer error or not inited in ssd1315 init \r\n");
+    return false;
+  }
+  _Bool flag = true;
+  for (uint8_t i = 0; i < SSD1315_COL_MAX + 1; i++) {
+
+    uint8_t send_buffer[][8] = {{0, SSD1315_CMD_SET_LOWER_COLUMN(i)},
+                                {0, SSD1315_CMD_SET_HIGHER_COLUMN(i >> 4)},
+                                {0, SSD1315_CMD_SET_PAGE_START_ADDR(0)},
+                                {0, 0}};
+    for (uint16_t c = 0; c < 2; c++) {
+      flag = self->WriteCMD(self, send_buffer[c], false, 8);
+    }
+    for (uint8_t j = 0; j < SSD1315_PAGE_MAX + 1; j++) {
+      send_buffer[2][1] = SSD1315_CMD_SET_PAGE_START_ADDR(j);
+      self->WriteCMD(self, send_buffer[2], false, 8);
+      flag = self->WriteData(self, send_buffer[3], 8);
+    }
+  }
+  return flag;
 }

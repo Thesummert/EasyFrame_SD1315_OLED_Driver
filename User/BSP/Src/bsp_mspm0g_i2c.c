@@ -168,7 +168,7 @@ _Bool EasyFrame_I2C_Transmit(EasyFrame_I2C_Typedef_t *self, uint8_t slave_addr, 
         if (DL_I2C_getControllerStatus(self->mspm0g.i2c) & DL_I2C_CONTROLLER_STATUS_ERROR) {
             return false;
         }
-        Delay_us(20);  // 等待5ms 进入下一轮发送
+        // Delay_us(20);  // 等待5ms 进入下一轮发送
     }
     return true;
 }
@@ -288,7 +288,7 @@ static _Bool TransmitAdvanced(EasyFrame_I2C_Typedef_t *self, uint8_t slave_addr,
         if (DL_I2C_getControllerStatus(self->mspm0g.i2c) & DL_I2C_CONTROLLER_STATUS_ERROR) {
             return false;
         }
-        Delay_us(20);  // 等待5ms 进入下一轮发送
+        // Delay_us(20);  // 等待5ms 进入下一轮发送
     }
     return true;
 }

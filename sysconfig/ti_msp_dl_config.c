@@ -125,7 +125,7 @@ static const DL_TimerG_ClockConfig gTIMERBASEClockConfig = {
  */
 static const DL_TimerG_TimerConfig gTIMERBASETimerConfig = {
     .period     = TIMERBASE_INST_LOAD_VALUE,
-    .timerMode  = DL_TIMER_TIMER_MODE_ONE_SHOT,
+    .timerMode  = DL_TIMER_TIMER_MODE_PERIODIC_UP,
     .startTimer = DL_TIMER_STOP,
 };
 
@@ -160,8 +160,8 @@ SYSCONFIG_WEAK void SYSCFG_DL_I2C_0_init(void) {
 
     /* Configure Controller Mode */
     DL_I2C_resetControllerTransfer(I2C_0_INST);
-    /* Set frequency to 100000 Hz*/
-    DL_I2C_setTimerPeriod(I2C_0_INST, 31);
+    /* Set frequency to 400000 Hz*/
+    DL_I2C_setTimerPeriod(I2C_0_INST, 7);
     DL_I2C_setControllerTXFIFOThreshold(I2C_0_INST, DL_I2C_TX_FIFO_LEVEL_EMPTY);
     DL_I2C_setControllerRXFIFOThreshold(I2C_0_INST, DL_I2C_RX_FIFO_LEVEL_BYTES_1);
     DL_I2C_enableControllerClockStretching(I2C_0_INST);
