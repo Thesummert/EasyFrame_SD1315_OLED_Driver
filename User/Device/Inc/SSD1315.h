@@ -21,6 +21,13 @@ typedef enum {
   SSD1315_PUMP_9V0,
 } EF_Device_SD1315_PUMP_e;
 
+typedef enum {
+  SSD1315_FONT_12 = 12,
+  SSD1315_FONT_16 = 16,
+  SSD1315_FONT_24 = 24,
+  SSD1315_FONT_32 = 32,
+} EF_Device_SD1315_Font_e;
+
 typedef struct EF_Device_SD1315_I2C_t {
   uint8_t i2c_addr;
   uint8_t height;
@@ -61,9 +68,22 @@ typedef struct EF_Device_SD1315_I2C_t {
                           uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
                           _Bool set);
   _Bool (*FillRectangle)(struct EF_Device_SD1315_I2C_t *self, uint8_t x_start,
-                          uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
-                          _Bool set);
-  _Bool is_inited;
+                         uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                         _Bool set);
+  _Bool (*WriteCircle)(struct EF_Device_SD1315_I2C_t *self, uint8_t x,
+                       uint8_t y, uint8_t r, _Bool set);
+
+  _Bool (*FillCircle)(struct EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                      uint8_t r, _Bool set);
+
+  _Bool (*WriteChar)(struct EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                     EF_Device_SD1315_Font_e font, uint8_t chr, _Bool set);
+
+  _Bool (*WriteString)(struct EF_Device_SD1315_I2C_t *self, uint8_t x,
+                       uint8_t y, EF_Device_SD1315_Font_e font, uint8_t *str,
+                       _Bool set);
+
+      _Bool is_inited;
 } EF_Device_SD1315_I2C_t;
 
 _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,

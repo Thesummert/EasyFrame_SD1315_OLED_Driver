@@ -1,4 +1,5 @@
 #include "SSD1315.h"
+#include "LCD_ASCII_Fonts.h"
 #include "SSD1315_regs.h"
 #include "bsp_mspm0g_tim_base.h"
 #include "mcu_config.h"
@@ -72,20 +73,35 @@ static _Bool WriteRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
                             uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
                             _Bool set);
 static _Bool FillRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
-                            uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
-                            _Bool set);
+                           uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                           _Bool set);
+
+static _Bool WriteCircle(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                         uint8_t r, _Bool set);
+
+static _Bool FillCircle(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                        uint8_t r, _Bool set);
+static _Bool WriteChar(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                       EF_Device_SD1315_Font_e font, uint8_t chr, _Bool set);
+static _Bool WriteString(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                         EF_Device_SD1315_Font_e font, uint8_t *str, _Bool set);
 
 static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self);
 
 /**
  * @brief 初始化 SSD1315 I2C 设备对象。
  * @param self 设备对象指针。
+ *
  * @param addr SSD1315 I2C 从地址，必须是支持的有效地址。
- * @param height 显示器高度，单位像素。
+ * @param height
+ * 显示器高度，单位像素。
  * @param witdh 显示器宽度，单位像素。
- * @param i2c 底层 I2C 句柄。
- * @param buffer 显示缓冲区首地址，大小需满足屏幕分辨率需求。
- * @return 初始化成功返回 true，失败返回 false。
+ * @param i2c
+ * 底层 I2C 句柄。
+ * @param buffer
+ * 显示缓冲区首地址，大小需满足屏幕分辨率需求。
+ * @return 初始化成功返回
+ * true，失败返回 false。
  */
 _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
                                 uint8_t height, uint8_t witdh,
@@ -115,6 +131,10 @@ _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
   self->WriteLine = WriteLine;
   self->WriteRectangle = WriteRectangle;
   self->FillRectangle = FillRectangle;
+  self->WriteCircle = WriteCircle;
+  self->FillCircle = FillCircle;
+  self->WriteChar = WriteChar;
+  self->WriteString = WriteString;
 
   self->is_inited = true;
 
@@ -124,10 +144,14 @@ _Bool EF_Device_SD1315_I2C_Init(EF_Device_SD1315_I2C_t *self, uint8_t addr,
 /**
  * @brief 向 SSD1315 发送命令。
  * @param self 设备对象指针。
- * @param buffer 命令数据缓冲区，buffer[0] 表示后续有效字节数，buffer[1] 起为命令内容。
- * @param CO 连续控制位，1 表示后续还有命令，0 表示最后一条命令。
+ * @param
+ * buffer 命令数据缓冲区，buffer[0] 表示后续有效字节数，buffer[1]
+ * 起为命令内容。
+ * @param CO 连续控制位，1 表示后续还有命令，0
+ * 表示最后一条命令。
  * @param buffer_len buffer[1] 起有效数据长度。
- * @return 发送成功返回 true，失败返回 false。
+ * @return
+ * 发送成功返回 true，失败返回 false。
  */
 static _Bool I2C_WriteCMD(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                           _Bool CO, uint8_t buffer_len) {
@@ -148,9 +172,12 @@ static _Bool I2C_WriteCMD(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
 /**
  * @brief 向 SSD1315 发送显示数据。
  * @param self 设备对象指针。
- * @param buffer 数据缓冲区，buffer[0] 表示后续有效字节数，buffer[1] 起为数据内容。
+ * @param
+ * buffer 数据缓冲区，buffer[0] 表示后续有效字节数，buffer[1] 起为数据内容。
+ *
  * @param buffer_len buffer[1] 起有效数据长度。
- * @return 发送成功返回 true，失败返回 false。
+ * @return 发送成功返回
+ * true，失败返回 false。
  */
 static _Bool I2C_WriteData(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
                            uint8_t buffer_len) {
@@ -171,6 +198,7 @@ static _Bool I2C_WriteData(EF_Device_SD1315_I2C_t *self, uint8_t *buffer,
 /**
  * @brief 执行 SSD1315 默认初始化流程。
  * @param self 设备对象指针。
+ *
  * @return 初始化成功返回 true，失败返回 false。
  */
 static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
@@ -199,9 +227,9 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
   if (self->WriteCMD(self, multiradio_set, 0, 8) == false) {
     return false;
   }
-  // if (self->Clear(self) == false) {
-  //   // return false;
-  // }
+  if (self->Clear(self) == false) {
+    // return false;
+  }
   EasyFrameSysTime_Delay_us(1000);
   if (self->WriteCMD(self, start, 0, 8) == false) {
     return false;
@@ -212,11 +240,14 @@ static _Bool I2C_InitDevice(EF_Device_SD1315_I2C_t *self) {
 
 /**
  * @brief 在指定坐标点上直接绘制单个像素并立即写入屏幕。
- * @param self 设备对象指针。
+ * @param self
+ * 设备对象指针。
  * @param x 像素横坐标。
  * @param y 像素纵坐标。
- * @param set true 表示点亮像素，false 表示熄灭像素。
- * @return 操作成功返回 true，失败返回 false。
+ * @param
+ * set true 表示点亮像素，false 表示熄灭像素。
+ * @return 操作成功返回
+ * true，失败返回 false。
  */
 static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
                            _Bool set) {
@@ -256,7 +287,8 @@ static _Bool I2C_DrawPoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
 /**
  * @brief 清空整个显示屏。
  * @param self 设备对象指针。
- * @return 清屏成功返回 true，失败返回 false。
+ * @return
+ * 清屏成功返回 true，失败返回 false。
  */
 static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self) {
   if (self == NULL || self->is_inited == false) {
@@ -284,11 +316,14 @@ static _Bool I2C_Clear(EF_Device_SD1315_I2C_t *self) {
 
 /**
  * @brief 在缓冲区中修改指定像素，并标记对应区域待刷新。
- * @param self 设备对象指针。
+ * @param self
+ * 设备对象指针。
  * @param x 像素横坐标。
  * @param y 像素纵坐标。
- * @param set true 表示点亮像素，false 表示熄灭像素。
- * @return 操作成功返回 true，失败返回 false。
+ * @param
+ * set true 表示点亮像素，false 表示熄灭像素。
+ * @return 操作成功返回
+ * true，失败返回 false。
  */
 static _Bool I2C_WritePoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
                             _Bool set) {
@@ -321,9 +356,11 @@ static _Bool I2C_WritePoint(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
 /**
  * @brief 标记指定列和页需要刷新到屏幕。
  * @param self 设备对象指针。
+ *
  * @param column 需要刷新的列地址。
  * @param page 需要刷新的页地址。
- * @return 标记成功返回 true，失败返回 false。
+ * @return
+ * 标记成功返回 true，失败返回 false。
  */
 static _Bool WriteBufferSet(EF_Device_SD1315_I2C_t *self, uint8_t column,
                             uint8_t page) {
@@ -348,8 +385,10 @@ static _Bool WriteBufferSet(EF_Device_SD1315_I2C_t *self, uint8_t column,
 
 /**
  * @brief 将缓冲区中已标记的数据刷新到 SSD1315 屏幕。
- * @param self 设备对象指针。
+ * @param self
+ * 设备对象指针。
  * @return 刷新成功返回 true，失败返回 false。
+
  */
 static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self) {
   /*将内存缓冲区中的数据写入到屏幕中*/
@@ -387,12 +426,16 @@ static _Bool I2C_WriteBuffer(EF_Device_SD1315_I2C_t *self) {
 /**
  * @brief 画一条直线，并更新到显示缓冲区。
  * @param self 设备对象指针。
+ *
  * @param x_start 起点横坐标。
  * @param y_start 起点纵坐标。
- * @param x_stop 终点横坐标。
+ * @param x_stop
+ * 终点横坐标。
  * @param y_stop 终点纵坐标。
- * @param set true 表示绘制，false 表示擦除。
+ * @param set true 表示绘制，false
+ * 表示擦除。
  * @return 绘制成功返回 true，失败返回 false。
+
  */
 static _Bool WriteLine(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
                        uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
@@ -455,13 +498,17 @@ static _Bool WriteLine(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
 
 /**
  * @brief 画一个空心矩形，并更新到显示缓冲区。
- * @param self 设备对象指针。
+ * @param self
+ * 设备对象指针。
  * @param x_start 左上角横坐标。
- * @param y_start 左上角纵坐标。
+ * @param y_start
+ * 左上角纵坐标。
  * @param x_stop 右下角横坐标。
- * @param y_stop 右下角纵坐标。
+ * @param y_stop
+ * 右下角纵坐标。
  * @param set true 表示绘制，false 表示擦除。
- * @return 绘制成功返回 true，失败返回 false。
+ * @return
+ * 绘制成功返回 true，失败返回 false。
  */
 static _Bool WriteRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
                             uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
@@ -500,18 +547,21 @@ static _Bool WriteRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
 
 /**
  * @brief 画一个实心矩形，并更新到显示缓冲区。
- * @param self 设备对象指针。
+ * @param self
+ * 设备对象指针。
  * @param x_start 左上角横坐标。
- * @param y_start 左上角纵坐标。
+ * @param y_start
+ * 左上角纵坐标。
  * @param x_stop 右下角横坐标。
- * @param y_stop 右下角纵坐标。
+ * @param y_stop
+ * 右下角纵坐标。
  * @param set true 表示绘制，false 表示擦除。
- * @return 绘制成功返回 true，失败返回 false。
+ * @return
+ * 绘制成功返回 true，失败返回 false。
  */
 static _Bool FillRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
-                             uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
-                             _Bool set)
-{
+                           uint8_t y_start, uint8_t x_stop, uint8_t y_stop,
+                           _Bool set) {
   if (self == NULL || self->is_inited == false) {
     RTT_Print(
         0, "Null pointer error or not inited in ssd1315 write rectangle \r\n");
@@ -528,8 +578,236 @@ static _Bool FillRectangle(EF_Device_SD1315_I2C_t *self, uint8_t x_start,
     return false;
   }
   _Bool flag = true;
-  for (uint8_t i = x_start; i < x_stop; i++){
-      flag = self->WriteLine(self, i, y_start, i, y_stop, set);
+  for (uint8_t i = x_start; i < x_stop; i++) {
+    flag = self->WriteLine(self, i, y_start, i, y_stop, set);
+  }
+  return flag;
+}
+
+/**
+ * @brief 画一个空心圆，并更新到显示缓冲区。
+ * @param self 设备对象指针。
+ * @param x 圆心横坐标。
+ * @param y 圆心纵坐标。
+ * @param r 圆半径，单位像素。
+ * @param set true 表示绘制，false 表示擦除。
+ * @return 绘制成功返回 true，失败返回 false。
+ */
+static _Bool WriteCircle(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                         uint8_t r, _Bool set) {
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0,
+              "Null pointer error or not inited in ssd1315 write circle \r\n");
+    return false;
+  }
+
+  if (x >= self->witdh || y >= self->height) {
+    RTT_Print(0, "x or y is invalid in ssd1315 write circle \r\n");
+    return false;
+  }
+
+  int a, b;
+  int di;
+  _Bool flag = true;
+
+  a = 0;
+  b = r;
+  di = 3 - (r << 1); /* 判断下个点位置的标志 */
+
+  while (a <= b) {
+    flag = self->WritePoint(self, x + a, y - b, set); /* 5 */
+    flag = self->WritePoint(self, x + b, y - a, set); /* 0 */
+    flag = self->WritePoint(self, x + b, y + a, set); /* 4 */
+    flag = self->WritePoint(self, x + a, y + b, set); /* 6 */
+    flag = self->WritePoint(self, x - a, y + b, set); /* 1 */
+    flag = self->WritePoint(self, x - b, y + a, set);
+    flag = self->WritePoint(self, x - a, y - b, set); /* 2 */
+    flag = self->WritePoint(self, x - b, y - a, set); /* 7 */
+    a++;
+
+    /* 使用Bresenham算法画圆 */
+    if (di < 0) {
+      di += 4 * a + 6;
+    } else {
+      di += 10 + 4 * (a - b);
+      b--;
+    }
+  }
+  return flag;
+}
+
+/**
+ * @brief 画一个实心圆，并更新到显示缓冲区。
+ * @param self 设备对象指针。
+ * @param x 圆心横坐标。
+ * @param y 圆心纵坐标。
+ * @param r 圆半径，单位像素。
+ * @param set true 表示绘制，false 表示擦除。
+ * @return 绘制成功返回 true，失败返回 false。
+ */
+static _Bool FillCircle(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                        uint8_t r, _Bool set) {
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0,
+              "Null pointer error or not inited in ssd1315 fill circle \r\n");
+    return false;
+  }
+
+  if (x >= self->witdh || y >= self->height) {
+    RTT_Print(0, "x or y is invalid in ssd1315 fill circle \r\n");
+    return false;
+  }
+
+  if (r == 0) {
+    return self->WritePoint(self, x, y, set);
+  }
+
+  if (x < r || y < r || x + r >= self->witdh || y + r >= self->height) {
+    RTT_Print(0, "circle is out of range in ssd1315 fill circle \r\n");
+    return false;
+  }
+
+  int16_t a = 0;
+  int16_t b = r;
+  int16_t di = 3 - (r << 1);
+  _Bool flag = true;
+
+  while (a <= b) {
+    flag &= self->WriteLine(self, x - a, y - b, x + a, y - b, set);
+    flag &= self->WriteLine(self, x - b, y - a, x + b, y - a, set);
+    flag &= self->WriteLine(self, x - b, y + a, x + b, y + a, set);
+    flag &= self->WriteLine(self, x - a, y + b, x + a, y + b, set);
+
+    a++;
+
+    if (di < 0) {
+      di += 4 * a + 6;
+    } else {
+      di += 10 + 4 * (a - b);
+      b--;
+    }
+  }
+
+  return flag;
+}
+
+/**
+ * @brief 绘制一个 ASCII 字符，并更新到显示缓冲区。
+ * @param self 设备对象指针。
+ * @param x 字符左上角横坐标。
+ * @param y 字符左上角纵坐标。
+ * @param font 字体高度枚举，支持 12、16、24、32 像素字体。
+ * @param chr 需要绘制的 ASCII 字符。
+ * @param set true 表示绘制，false 表示擦除。
+ * @return 绘制成功返回 true，失败返回 false。
+ */
+static _Bool WriteChar(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                       EF_Device_SD1315_Font_e font, uint8_t chr, _Bool set) {
+  if (self == NULL || self->is_inited == false) {
+    RTT_Print(0, "Null pointer error or not inited in ssd1315 write char \r\n");
+    return false;
+  }
+
+  if (x >= self->witdh || y >= self->height) {
+    RTT_Print(0, "x or y is invalid in ssd1315 write char \r\n");
+    return false;
+  }
+
+  uint8_t temp, t1, t;
+  uint16_t y0 = y;
+  uint8_t cfont = 0;
+  uint8_t *pfont = 0;
+
+  cfont = (font / 8 + ((font % 8) ? 1 : 0)) *
+          (font / 2); /* 得到字体一个字符对应点阵集所占的字节数 */
+  chr = chr - ' ';    /* 得到偏移后的值（ASCII字库是从空格开始取模，所以-'
+                         '就是对应字符的字库） */
+
+  switch (font) {
+  case 12:
+    pfont = (uint8_t *)asc2_1206[chr]; /* 调用1206字体 */
+    break;
+
+  case 16:
+    pfont = (uint8_t *)asc2_1608[chr]; /* 调用1608字体 */
+    break;
+
+  case 24:
+    pfont = (uint8_t *)asc2_2412[chr]; /* 调用2412字体 */
+    break;
+
+  case 32:
+    pfont = (uint8_t *)asc2_3216[chr]; /* 调用3216字体 */
+    break;
+
+  default:
+    return false;
+  }
+
+  for (t = 0; t < cfont; t++) {
+    temp = pfont[t]; /* 获取字符的点阵数据 */
+
+    for (t1 = 0; t1 < 8; t1++) /* 一个字节8个点 */
+    {
+      if (temp & 0x80) /* 有效点,需要显示 */
+      {
+        self->DrawPoint(self, x, y, set);
+      }
+
+      temp <<= 1; /* 移位, 以便获取下一个位的状态 */
+      y++;
+
+      if (y >= self->height)
+        return false;
+      ; /* 超区域了 */
+
+      if ((y - y0) == font) /* 显示完一列了? */
+      {
+        y = y0; /* y坐标复位 */
+        x++;    /* x坐标递增 */
+
+        if (x >= self->witdh) {
+          return false;
+          ; /* x坐标超区域了 */
+        }
+
+        break;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * @brief 绘制 ASCII 字符串，并更新到显示缓冲区。
+ * @param self 设备对象指针。
+ * @param x 字符串起始横坐标。
+ * @param y 字符串起始纵坐标。
+ * @param font 字体高度枚举，支持 12、16、24、32 像素字体。
+ * @param str 以 '\0' 结尾的 ASCII 字符串指针。
+ * @param set true 表示绘制，false 表示擦除。
+ * @return 绘制成功返回 true，失败返回 false。
+ */
+static _Bool WriteString(EF_Device_SD1315_I2C_t *self, uint8_t x, uint8_t y,
+                         EF_Device_SD1315_Font_e font, uint8_t *str,
+                         _Bool set) {
+  uint8_t x0 = x;
+  _Bool flag = true;
+
+  while ((*str <= '~') && (*str >= ' ')) /* 判断是不是非法字符! */
+  {
+    if (x >= self->witdh) {
+      x = x0;
+      y += font;
+    }
+
+    if (y >= self->height) {
+      break; /* 退出 */
+    }
+
+    flag = self->WriteChar(self, x, y, font, *str, set);
+    x += font / 2;
+    str++;
   }
   return flag;
 }
